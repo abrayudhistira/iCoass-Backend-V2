@@ -1,0 +1,36 @@
+{
+  "name": "backend-icoass",
+  "version": "1.0.0",
+  "description": "iCoass Labs",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "axios": "^1.15.0",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "connect-flash": "^0.1.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "express-list-endpoints": "^7.1.1",
+    "express-session": "^1.19.0",
+    "express-validator": "^7.3.2",
+    "express-ws": "^5.0.2",
+    "firebase-admin": "^13.8.0",
+    "jsonwebtoken": "^9.0.3",
+    "mqtt": "^5.15.1",
+    "multer": "^2.1.1",
+    "mysql2": "^3.22.0",
+    "node-cron": "^4.2.1",
+    "open": "^11.0.0",
+    "sequelize": "^6.37.8",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "sequelize-auto": "^0.8.8"
+  }
+}
