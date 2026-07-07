@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('user_symptoms', {
+  return sequelize.define('user_tokens', {
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER,
@@ -15,14 +15,24 @@ module.exports = function(sequelize, DataTypes) {
         key: 'id'
       }
     },
-    selected_symptoms: {
+    refresh_token: {
       type: DataTypes.TEXT,
       allowNull: false
+    },
+    expires_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.Sequelize.fn('current_timestamp')
+    },
+    is_revoked: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: 0
     }
   }, {
     sequelize,
-    tableName: 'user_symptoms',
-    timestamps: true,
+    tableName: 'user_tokens',
+    timestamps: false,
     indexes: [
       {
         name: "PRIMARY",
@@ -37,13 +47,6 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "user_id" },
-        ]
-      },
-      {
-        name: "idx_symptoms_created",
-        using: "BTREE",
-        fields: [
-          { name: "createdAt" },
         ]
       },
     ]

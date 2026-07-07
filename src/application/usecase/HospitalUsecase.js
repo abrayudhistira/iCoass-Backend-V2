@@ -4,15 +4,15 @@ class HospitalUseCase {
     }
 
     async getHospitals(params) {
-        const { lat, lng, radius, page, limit } = params;
+        const { latitude, longitude, radius, page, limit } = params;
 
-        if (lat && lng) {
+        if (latitude && longitude) {
             const searchRadius = parseFloat(radius) || 10;
             return await this.hospitalsRepository.findNearest(
-                parseFloat(lat), 
-                parseFloat(lng), 
-                searchRadius, 
-                parseInt(page), 
+                parseFloat(latitude),
+                parseFloat(longitude),
+                searchRadius,
+                parseInt(page),
                 parseInt(limit)
             );
         }

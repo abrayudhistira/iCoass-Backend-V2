@@ -5,6 +5,7 @@ var _diagnosis_history = require("./diagnosis_history");
 var _hospitals = require("./hospitals");
 var _messages = require("./messages");
 var _user_symptoms = require("./user_symptoms");
+var _user_tokens = require("./user_tokens");
 var _users = require("./users");
 
 function initModels(sequelize) {
@@ -14,6 +15,7 @@ function initModels(sequelize) {
   var hospitals = _hospitals(sequelize, DataTypes);
   var messages = _messages(sequelize, DataTypes);
   var user_symptoms = _user_symptoms(sequelize, DataTypes);
+  var user_tokens = _user_tokens(sequelize, DataTypes);
   var users = _users(sequelize, DataTypes);
 
   messages.belongsTo(chat_rooms, { as: "room", foreignKey: "room_id"});
@@ -30,6 +32,8 @@ function initModels(sequelize) {
   users.hasMany(messages, { as: "messages", foreignKey: "sender_id"});
   user_symptoms.belongsTo(users, { as: "user", foreignKey: "user_id"});
   users.hasMany(user_symptoms, { as: "user_symptoms", foreignKey: "user_id"});
+  user_tokens.belongsTo(users, { as: "user", foreignKey: "user_id"});
+  users.hasMany(user_tokens, { as: "user_tokens", foreignKey: "user_id"});
 
   return {
     articles,
@@ -38,6 +42,7 @@ function initModels(sequelize) {
     hospitals,
     messages,
     user_symptoms,
+    user_tokens,
     users,
   };
 }

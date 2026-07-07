@@ -17,7 +17,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     admin_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'users',
         key: 'id'
@@ -31,6 +31,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: Sequelize.Sequelize.fn('current_timestamp')
+    },
+    status: {
+      type: DataTypes.ENUM('pending','active','closed'),
+      allowNull: false,
+      defaultValue: "pending"
     }
   }, {
     sequelize,
@@ -58,6 +63,13 @@ module.exports = function(sequelize, DataTypes) {
         fields: [
           { name: "user_id" },
           { name: "admin_id" },
+        ]
+      },
+      {
+        name: "idx_room_status",
+        using: "BTREE",
+        fields: [
+          { name: "status" },
         ]
       },
     ]

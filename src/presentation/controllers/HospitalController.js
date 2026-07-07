@@ -2,14 +2,14 @@ const HospitalsRepository = require("../../infrastructure/repositories/HospitalR
 const HospitalUseCase = require("../../application/usecase/HospitalUsecase");
 
 class HospitalController {
-    constructor() {
-        const repo = new HospitalsRepository();
-        this.useCase = new HospitalUseCase(repo);
+    constructor(HospitalUseCase){
+        this.useCase = HospitalUseCase;
     }
 
     getAll = async (req, res) => {
         try {
             const { latitude, longitude, radius, page, limit } = req.query;
+            console.log('[HospitalController] Query:', req.query);
             
             const result = await this.useCase.getHospitals({
                 latitude, longitude, radius, 
@@ -73,4 +73,4 @@ class HospitalController {
     };
 }
 
-module.exports = new HospitalController();
+module.exports = HospitalController;

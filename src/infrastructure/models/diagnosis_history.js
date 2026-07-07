@@ -73,7 +73,7 @@ module.exports = function(sequelize, DataTypes) {
         name: "idx_diag_date",
         using: "BTREE",
         fields: [
-          { name: "created_at" },
+          { name: "createdAt" },
         ]
       },
     ]

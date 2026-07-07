@@ -2,9 +2,9 @@ const ArticlesRepository = require("../../infrastructure/repositories/ArticlesRe
 const ArticleUseCase = require("../../application/usecase/ArticleUseCase");
 
 class ArticleController {
-    constructor() {
-        const repo = new ArticlesRepository();
-        this.useCase = new ArticleUseCase(repo);
+
+    constructor(ArticleUseCase) {
+        this.useCase = ArticleUseCase;
     }
 
     getAll = async (req, res) => {
@@ -77,4 +77,4 @@ class ArticleController {
     };
 }
 
-module.exports = new ArticleController();
+module.exports = ArticleController;
