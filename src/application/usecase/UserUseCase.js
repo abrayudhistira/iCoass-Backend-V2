@@ -250,6 +250,9 @@ class UserUseCase {
             throw new Error("User tidak ditemukan");
         }
 
+        // Level 1: Hapus semua token user terlebih dahulu (Application-level cascade)
+        await this.userTokenRepository.deleteAllUserTokens(targetId);
+
         return await this.usersRepository.delete(targetId);
     }
     async refreshAccessToken(token) {

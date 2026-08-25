@@ -1,0 +1,46 @@
+# version: '3.8'
+
+# services:
+#   # --- SERVICE DATABASE (MYSQL) ---
+#   db:
+#     image: mysql:8.0
+#     container_name: mysql
+#     restart: always
+#     environment:
+#       MYSQL_DATABASE: db_icoass
+#       MYSQL_ROOT_PASSWORD: "123" # Menetapkan password root MySQL menjadi 123
+#     ports:
+#       - "3306:3306"
+#     volumes:
+#       - icoass_db_data:/var/lib/mysql
+
+#   # --- SERVICE BACKEND (EXPRESS) ---
+#   backend:
+#     build:
+#       context: ./backend
+#       dockerfile: Dockerfile
+#     container_name: icoass_main_service
+#     ports:
+#       - "3003:3003"
+#     volumes:
+#       - ./backend:/usr/src/app
+#       - /usr/src/app/node_modules
+#     environment:
+#       - PORT=3003
+#       - DB_NAME=db_icoass
+#       - DB_USER=root
+#       - DB_PASSWORD=123 # Sinkron dengan MYSQL_ROOT_PASSWORD pada service 'db'
+#       - DB_HOST=db
+#       - DB_DIALECT=mysql
+#       - JWT_SECRET=iCoass_2026
+#       - REFRESH_TOKEN_SECRET=iCoas_2026
+#       - BCRYPT_SALT_ROUNDS=12
+#       - NODE_ENV=development
+#       - PORT_PYTHON_SERVICE_URL=http://localhost:8080
+#     env_file:
+#       - ./backend/.env
+#     depends_on:
+#       - db
+
+# volumes:
+#   icoass_db_data:

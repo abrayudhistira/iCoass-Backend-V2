@@ -51,6 +51,12 @@ class UserTokenRepository {
             }
         });
     }
+
+    async deleteAllUserTokens(userId) {
+        return await models.user_tokens.destroy({
+            where: { user_id: userId }
+        });
+    }
 }
 
 module.exports = UserTokenRepository;

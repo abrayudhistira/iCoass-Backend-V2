@@ -26,11 +26,6 @@ module.exports = function(sequelize, DataTypes) {
     message_text: {
       type: DataTypes.TEXT,
       allowNull: false
-    },
-    is_read: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: 0
     }
   }, {
     sequelize,

@@ -72,6 +72,14 @@ module.exports = function(sequelize, DataTypes) {
           { name: "status" },
         ]
       },
+      {
+        name: "idx_chat_rooms_user_status",
+        using: "BTREE",
+        fields: [
+          { name: "user_id" },
+          { name: "status" },
+        ]
+      },
     ]
   });
 };
