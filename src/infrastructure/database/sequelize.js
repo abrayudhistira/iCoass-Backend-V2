@@ -9,6 +9,13 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     dialect: 'mysql',
     logging: false,
+    pool: {
+      max: 20,
+      min: 5,
+      acquire: 30000,
+      idle: 10000,
+      evict: 1000
+    },
     define: {
       timestamps: false // Matikan jika tabelmu tidak punya kolom createdAt/updatedAt
     }
