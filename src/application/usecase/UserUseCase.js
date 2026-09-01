@@ -261,7 +261,8 @@ class UserUseCase {
         if (!savedToken) throw new Error("Refresh token tidak valid atau sudah logout");
 
         // Verifikasi JWT
-        const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+        // const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+        const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, { algorithms: ['HS256'] });
         const user = await this.usersRepository.findById(decoded.id);
 
         // Generate Access Token baru

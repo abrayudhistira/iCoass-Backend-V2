@@ -46,6 +46,7 @@ const { validateArticle } = require('./src/presentation/middlewares/ArticleValid
 const { uploadArticleImage, uploadHospitalImage } = require('./src/presentation/middlewares/UploadMiddleware');
 const selfMiddleware = require('./src/presentation/middlewares/SelfMiddleware');
 const logMiddleware = require('./src/presentation/middlewares/LogMiddleware');
+const { authLimiter, diagnosisLimiter } = require('./src/presentation/middlewares/RateLimitMiddleware');
 const printRoutes = require('./src/infrastructure/utils/RouteScanner');
 
 // 1. Inisialisasi Express & App Middlewares
@@ -130,9 +131,9 @@ app.get('/health', async (req, res) => {
 });
 
 // Public Authentication
-app.post('/api/register', validateRegister, userController.register);
-app.post('/api/login', userController.login);
-app.post('/api/refresh-token', userController.refreshToken);
+app.post('/api/register', authLimiter, validateRegister, userController.register);
+app.post('/api/login', authLimiter, userController.login);
+app.post('/api/refresh-token', authLimiter, userController.refreshToken);
 app.post('/api/logout', authMiddleware, userController.logout);
 
 // User & Feature Routes (Authenticated)
@@ -147,7 +148,7 @@ app.get('/api/articles/:id', authMiddleware, articleController.getOne);
 app.get('/api/hospitals', authMiddleware, hospitalController.getAll);
 app.get('/api/hospitals/:id', authMiddleware, hospitalController.getOne);
 
-app.post('/api/diagnosis', authMiddleware, diagnosisController.diagnose);
+app.post('/api/diagnosis', authLimiter, diagnosisLimiter, diagnosisController.diagnose);
 app.get('/api/diagnosis/history', authMiddleware, diagnosisController.getHistory);
 
 // Chat Feature Routes
