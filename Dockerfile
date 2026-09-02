@@ -16,6 +16,5 @@ COPY . .
 # Mengekspos port aplikasi (sesuaikan dengan port yang didefinisikan pada app.js atau .env Anda, misal: 3000)
 EXPOSE 3003
 
-# Menjalankan aplikasi dengan mode pengembangan
-# Pisahkan "run" dan "dev" menjadi argumen terpisah
-CMD ["npm", "run", "dev"]
+# Menjalankan aplikasi dengan mode production
+CMD ["npm", "start"]
