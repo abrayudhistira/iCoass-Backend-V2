@@ -1,8 +1,10 @@
-const initModels = require("../models/init-models");
-const sequelize = require("../database/sequelize");
-const models = initModels(sequelize);
 
 class ChatRepository {
+    constructor(chatRoomModel, messageModel, userModel) {
+        this.chatRoomModel = chatRoomModel;
+        this.messageModel = messageModel;
+        this.userModel = userModel;
+    }
     // 1. Pasien masuk antrian
     // async createRoom(userId) {
     //     return await models.chat_rooms.create({
@@ -43,32 +45,22 @@ class ChatRepository {
     //         throw error;
     //     }
     // }
-    async createRoom(userId) {
-        // Gunakan managed transaction (otomatis commit/rollback)
-        return await sequelize.transaction(async (t) => {
-            // LOCK: Cek apakah user sudah punya room pending atau active
-            const existingRoom = await models.chat_rooms.findOne({
-                where: {
-                    user_id: userId,
-                    status: ['pending', 'active']
-                },
-                transaction: t,
-                lock: t.LOCK.UPDATE
-            });
-
-            if (existingRoom) {
-                throw new Error("Anda sudah memiliki sesi konsultasi yang aktif");
-            }
-
-            // Jika tidak ada, buat room baru
-            const newRoom = await models.chat_rooms.create({
+    async findActiveByUserId(userId, transaction = null) {
+        return await this.chatRoomModel.findOne({
+            where: {
                 user_id: userId,
-                status: 'pending'
-            }, { transaction: t });
-
-            return newRoom;
+                status: ['pending', 'active']
+            },
+            transaction,
+            lock: transaction ? transaction.LOCK.UPDATE : false
         });
-        // Tidak perlu try-catch manual, sequelize.transaction() otomatis handle rollback
+    }
+
+    async createRoom(userId, transaction = null) {
+        return await this.chatRoomModel.create({
+            user_id: userId,
+            status: 'pending'
+        }, { transaction });
     }
 
     // 2. Admin melihat list antrian (Pending)
@@ -85,58 +77,49 @@ class ChatRepository {
     }
 
     // 3. Admin klaim pasien (Pake Lock untuk hindari rebutan)
-    async claimPatient(roomId, adminId) {
-        const transaction = await sequelize.transaction();
-        try {
-            const room = await models.chat_rooms.findByPk(roomId, { transaction, lock: true });
+    async claimPatient(roomId, adminId, transaction = null) {
+        const room = await this.chatRoomModel.findByPk(roomId, { transaction, lock: true });
 
-            if (!room) throw new Error("Antrian tidak ditemukan");
-            if (room.status !== 'pending') throw new Error("Sudah diambil admin lain");
+        // Business logic will be moved to UseCase
+        // if (!room) throw new Error("Antrian tidak ditemukan");
+        // if (room.status !== 'pending') throw new Error("Sudah diambil admin lain");
 
-            await room.update({
-                admin_id: adminId,
-                status: 'active'
-            }, { transaction });
+        await room.update({
+            admin_id: adminId,
+            status: 'active'
+        }, { transaction });
 
-            await transaction.commit();
-            return room;
-        } catch (error) {
-            await transaction.rollback();
-            throw error;
-        }
+        return room;
     }
 
     // 4. Kirim & Update Last Message (Transaction agar sinkron)
-    async saveMessage(data) {
-        const transaction = await sequelize.transaction();
-        try {
-            const message = await models.messages.create(data, { transaction });
-            
-            await models.chat_rooms.update({
-                last_message: data.message_text,
-                last_message_time: new Date()
-            }, { 
-                where: { id: data.room_id }, 
-                transaction 
-            });
+    async saveMessage(data, transaction = null) {
+        const message = await this.messageModel.create(data, { transaction });
 
-            await transaction.commit();
-            return message;
-        } catch (error) {
-            await transaction.rollback();
-            throw error;
-        }
+        await this.chatRoomModel.update({
+            last_message: data.message_text,
+            last_message_time: new Date()
+        }, {
+            where: { id: data.room_id },
+            transaction
+        });
+
+        return message;
     }
 
     // 5. History Chat (Penting buat load di Flutter)
     async getMessagesByRoom(roomId, page = 1, limit = 50) {
         const offset = (page - 1) * limit;
-        return await models.messages.findAll({
+        return await this.messageModel.findAll({
             where: { room_id: roomId },
             order: [['createdAt', 'ASC']],
             limit,
             offset
         });
+    }
+
+    async getRoomById(roomId, transaction = null) {
+        return await this.chatRoomModel.findByPk(roomId, { transaction });
     }
 
     // 6. List Chat Aktif (Sesuai Role)
@@ -157,44 +140,36 @@ class ChatRepository {
     // }
     async getRoomsByRole(id, role) {
         const isParamAdmin = role === 'admin';
-        
-        // FIX: Include 'active' dan 'closed' (exclude 'pending' untuk pasien)
-        const statusFilter = isParamAdmin 
-            ? { status: ['active', 'closed'] } // Admin lihat active & closed
-            : { status: ['active', 'closed'] }; // Pasien juga lihat active & closed
-        
-        return await models.chat_rooms.findAll({
-            where: { 
+
+        const statusFilter = isParamAdmin
+            ? { status: ['active', 'closed'] }
+            : { status: ['active', 'closed'] };
+
+        return await this.chatRoomModel.findAll({
+            where: {
                 [isParamAdmin ? 'admin_id' : 'user_id']: id,
                 ...statusFilter
             },
-            include: [{ 
-                model: models.users, 
-                as: isParamAdmin ? 'user' : 'admin', 
-                attributes: ['id', 'username'] 
+            include: [{
+                model: this.userModel,
+                as: isParamAdmin ? 'user' : 'admin',
+                attributes: ['id', 'username']
             }],
             order: [['last_message_time', 'DESC']]
         });
     }
-     async closeRoom(roomId) {
-        const transaction = await sequelize.transaction();
-        try {
-            const room = await models.chat_rooms.findByPk(roomId, { transaction, lock: true });
+     async closeRoom(roomId, transaction = null) {
+        const room = await this.chatRoomModel.findByPk(roomId, { transaction, lock: true });
 
-            if (!room) throw new Error("Chat room tidak ditemukan");
-            if (room.status === 'closed') throw new Error("Sesi sudah ditutup sebelumnya");
+        // Business logic will be moved to UseCase
+        // if (!room) throw new Error("Chat room tidak ditemukan");
+        // if (room.status === 'closed') throw new Error("Sesi sudah ditutup sebelumnya");
 
-            await room.update({
-                status: 'closed'
-            }, { transaction });
+        await room.update({
+            status: 'closed'
+        }, { transaction });
 
-            await transaction.commit();
-            return room;
-        } catch (error) {
-            await transaction.rollback();
-            throw error;
-        }
+        return room;
     }
-}
 
 module.exports = ChatRepository;

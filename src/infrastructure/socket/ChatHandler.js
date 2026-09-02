@@ -1,3 +1,5 @@
+const { AppError, ValidationError } = require('../../domain/errors/AppError');
+
 module.exports = (io, socket, chatUseCase) => {
     
     // 1. Pasien Request Konsultasi (Masuk Antrian)
@@ -25,14 +27,14 @@ module.exports = (io, socket, chatUseCase) => {
             
             // Validasi tambahan di socket layer
             if (!userId) {
-                throw new Error("User ID tidak valid");
+                throw new ValidationError("User ID tidak valid");
             }
 
             const room = await chatUseCase.createQueue(userId);
-            
+
             // Pasien otomatis join ke room miliknya sendiri
             socket.join(`room_${room.id}`);
-            
+
             // Broadcast ke SEMUA Admin/Koas bahwa ada antrian baru
             io.emit("new_queue_available", {
                 roomId: room.id,
@@ -49,11 +51,13 @@ module.exports = (io, socket, chatUseCase) => {
 
         } catch (err) {
             console.error(`❌ [SOCKET] Error creating queue: ${err.message}`);
-            
+
             // Kirim error ke client
-            socket.emit("error_response", { 
-                message: err.message,
-                code: err.message.includes("sudah memiliki") ? "DUPLICATE_REQUEST" : "SERVER_ERROR"
+            const errorMessage = err instanceof AppError ? err.message : "Terjadi kesalahan pada server";
+            const errorCode = err instanceof AppError ? err.code : "SERVER_ERROR";
+            socket.emit("error_response", {
+                message: errorMessage,
+                code: errorCode
             });
         }
     });
@@ -77,7 +81,13 @@ module.exports = (io, socket, chatUseCase) => {
             // Update list antrian di semua Admin (agar room tersebut hilang dari list pending)
             io.emit("queue_updated", { roomId: room.id });
         } catch (err) {
-            socket.emit("error_response", { message: err.message });
+            console.error(`❌ [SOCKET] Error accepting chat: ${err.message}`);
+            const errorMessage = err instanceof AppError ? err.message : "Terjadi kesalahan pada server";
+            const errorCode = err instanceof AppError ? err.code : "SERVER_ERROR";
+            socket.emit("error_response", {
+                message: errorMessage,
+                code: errorCode
+            });
         }
     });
 
@@ -85,14 +95,23 @@ module.exports = (io, socket, chatUseCase) => {
     socket.on("send_message", async (data) => {
         try {
             const { sender_id, room_id, message_text } = data;
-            
+            // Basic validation for socket input
+            if (!sender_id || !room_id || !message_text || message_text.trim() === '') {
+                throw new ValidationError("Sender ID, Room ID, dan Message text tidak boleh kosong");
+            }
             // Simpan ke database via UseCase
             const savedMsg = await chatUseCase.saveChat(sender_id, room_id, message_text);
 
             // Kirim ke semua orang di room tersebut (Pasien & Admin)
             io.to(`room_${room_id}`).emit("receive_message", savedMsg);
         } catch (err) {
-            socket.emit("error_response", { message: "Gagal mengirim pesan" });
+            console.error(`❌ [SOCKET] Error sending message: ${err.message}`);
+            const errorMessage = err instanceof AppError ? err.message : "Gagal mengirim pesan";
+            const errorCode = err instanceof AppError ? err.code : "SERVER_ERROR";
+            socket.emit("error_response", {
+                message: errorMessage,
+                code: errorCode
+            });
         }
     });
 
@@ -114,14 +133,20 @@ module.exports = (io, socket, chatUseCase) => {
             });
 
             // FIX: Emit queue_updated agar list chat ter-refresh
-            io.emit("queue_updated", { 
+            io.emit("queue_updated", {
                 roomId: room.id,
                 action: 'closed'
             });
 
             console.log(`✅ [SOCKET] Chat room ${roomId} ditutup`);
         } catch (err) {
-            socket.emit("error_response", { message: err.message });
+            console.error(`❌ [SOCKET] Error closing chat: ${err.message}`);
+            const errorMessage = err instanceof AppError ? err.message : "Terjadi kesalahan pada server";
+            const errorCode = err instanceof AppError ? err.code : "SERVER_ERROR";
+            socket.emit("error_response", {
+                message: errorMessage,
+                code: errorCode
+            });
         }
     });
 };

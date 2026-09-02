@@ -1,50 +1,29 @@
-const initModels = require("../models/init-models");
-const sequelize = require("../database/sequelize");
 const { Sequelize } = require('sequelize');
-const models = initModels(sequelize);
 
-class HospitalsRepository {
-    async create(data) {
-        return await models.hospitals.create(data);
+class HospitalRepository {
+    constructor(hospitalModel, sequelize) {
+        this.hospitalModel = hospitalModel;
+        this.sequelize = sequelize;
     }
 
-    async findById(id) {
-        return await models.hospitals.findByPk(id);
+    async create(data, transaction = null) {
+        return await this.hospitalModel.create(data, { transaction });
     }
 
-    // Mendukung pencarian biasa (alfabetis)
+    async findById(id, transaction = null) {
+        return await this.hospitalModel.findByPk(id, { transaction });
+    }
+
     async findAll(page = 1, limit = 10) {
         const offset = (page - 1) * limit;
-        return await models.hospitals.findAndCountAll({
+        return await this.hospitalModel.findAndCountAll({
             limit: limit,
             offset: offset,
             order: [['name', 'ASC']]
         });
     }
 
-    // Mendukung pencarian radius (Haversine)
-    // async findNearest(userLat, userLng, radiusKm = 10, page = 1, limit = 10) {
-    //     const offset = (page - 1) * limit;
-
-    //     const distanceSql = sequelize.literal(`(
-    //         6371 * acos(
-    //             cos(radians(${userLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${userLng})) + 
-    //             sin(radians(${userLat})) * sin(radians(latitude))
-    //         )
-    //     )`);
-
-    //     return await models.hospitals.findAndCountAll({
-    //         attributes: {
-    //             include: [[distanceSql, 'distance']]
-    //         },
-    //         where: Sequelize.where(distanceSql, { [Sequelize.Op.lte]: radiusKm }),
-    //         order: [[sequelize.col('distance'), 'ASC']],
-    //         limit,
-    //         offset
-    //     });
-    // }
-
-    async findNearest(userLat, userLng, radiusKm = 10, page = 1, limit = 10) {
+    async findNearest(userLat, userLng, radiusKm = 10, page = 1, limit = 10, transaction = null) {
         const offset = (page - 1) * limit;
 
         // Kalkulasi Bounding Box (Penyaringan awal agar Database bisa menggunakan Index)
@@ -58,17 +37,14 @@ class HospitalsRepository {
         const minLng = userLng - lngDelta;
         const maxLng = userLng + lngDelta;
 
-        const distanceSql = sequelize.literal(`(
+        const distanceSql = this.sequelize.literal(`(
         6371 * acos(
-            cos(radians(${userLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${userLng})) + 
+            cos(radians(${userLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${userLng})) +
             sin(radians(${userLat})) * sin(radians(latitude))
         )
     )`);
 
-        // Debug input parameter
-        console.log('[findNearest] Params:', { userLat, userLng, radiusKm, page, limit });
-
-        const result = await models.hospitals.findAndCountAll({
+        const result = await this.hospitalModel.findAndCountAll({
             attributes: {
                 include: [[distanceSql, 'distance']]
             },
@@ -76,34 +52,26 @@ class HospitalsRepository {
                 // Gunakan index pada kolom lat/lng untuk mempercepat pencarian (Bounding Box)
                 latitude: { [Sequelize.Op.between]: [minLat, maxLat] },
                 longitude: { [Sequelize.Op.between]: [minLng, maxLng] },
-                
+
                 // Filter presisi menggunakan rumus Haversine
                 [Sequelize.Op.and]: Sequelize.where(distanceSql, { [Sequelize.Op.lte]: radiusKm })
             },
-            order: [[sequelize.col('distance'), 'ASC']],
+            order: [[this.sequelize.col('distance'), 'ASC']],
             limit,
-            offset
+            offset,
+            transaction
         });
-
-        // Debug output distance
-        console.log('[findNearest] Result:', result.rows.map(r => ({
-            id: r.id,
-            name: r.name,
-            latitude: r.latitude,
-            longitude: r.longitude,
-            distance: r.dataValues.distance
-        })));
 
         return result;
     }
 
-    async update(id, data) {
-        return await models.hospitals.update(data, { where: { id } });
+    async update(id, data, transaction = null) {
+        return await this.hospitalModel.update(data, { where: { id }, transaction });
     }
 
-    async delete(id) {
-        return await models.hospitals.destroy({ where: { id } });
+    async delete(id, transaction = null) {
+        return await this.hospitalModel.destroy({ where: { id }, transaction });
     }
 }
 
-module.exports = HospitalsRepository;
+module.exports = HospitalRepository;

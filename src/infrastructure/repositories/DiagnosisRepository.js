@@ -1,21 +1,22 @@
-const initModels = require("../models/init-models");
-const sequelize = require("../database/sequelize");
-const models = initModels(sequelize);
-
 class DiagnosisRepository {
-    async createSymptomLog(data) {
-        return await models.user_symptoms.create(data);
+    constructor(diagnosisHistoryModel, userSymptomModel) {
+        this.diagnosisHistoryModel = diagnosisHistoryModel;
+        this.userSymptomModel = userSymptomModel;
     }
 
-    async createDiagnosisHistory(data) {
-        return await models.diagnosis_history.create(data);
+    async createSymptomLog(data, transaction = null) {
+        return await this.userSymptomModel.create(data, { transaction });
+    }
+
+    async createDiagnosisHistory(data, transaction = null) {
+        return await this.diagnosisHistoryModel.create(data, { transaction });
     }
 
     async findHistoryByUserId(userId, page = 1, limit = 10) {
         const offset = (page - 1) * limit;
-        return await models.diagnosis_history.findAndCountAll({
+        return await this.diagnosisHistoryModel.findAndCountAll({
             where: { user_id: userId },
-            include: [{ model: models.user_symptoms, as: 'symptom_log' }],
+            include: [{ model: this.userSymptomModel, as: 'symptom_log' }],
             order: [['createdAt', 'DESC']],
             limit,
             offset
@@ -23,8 +24,8 @@ class DiagnosisRepository {
     }
 
     async findDiagnosisById(id) {
-        return await models.diagnosis_history.findByPk(id, {
-            include: [{ model: models.user_symptoms, as: 'symptom_log' }]
+        return await this.diagnosisHistoryModel.findByPk(id, {
+            include: [{ model: this.userSymptomModel, as: 'symptom_log' }]
         });
     }
 }

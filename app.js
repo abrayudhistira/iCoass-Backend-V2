@@ -12,8 +12,12 @@ const swaggerDocument = require('./swagger-output.json');
 
 // Infrastructure & Database
 const sequelize = require('./src/infrastructure/database/sequelize');
+const initModels = require('./src/infrastructure/models/init-models');
 const seedAdmin = require('./src/infrastructure/database/seeder');
 const chatHandler = require("./src/infrastructure/socket/ChatHandler");
+
+// Initialize models once
+const models = initModels(sequelize);
 
 // --- REPOSITORIES ---
 const UserTokenRepository = require('./src/infrastructure/repositories/UserTokenRepository');
@@ -61,26 +65,25 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 // --- DEPENDENCY INJECTION SETUP ---
-const chatRepo = new ChatRepository();
-const chatUseCase = new ChatUseCase(chatRepo);
+const chatRepo = new ChatRepository(models.chat_rooms, models.messages, models.users);
+const chatUseCase = new ChatUseCase(chatRepo, sequelize);
 const chatController = new ChatController(chatUseCase);
 
-const userTokenRepo = new UserTokenRepository(); // Instansiasi repo token
-const userRepo = new UserRepository();
-// Masukkan userTokenRepo ke dalam UserUseCase
-const userUseCase = new UserUseCase(userRepo, userTokenRepo); 
+const userTokenRepo = new UserTokenRepository(models.user_tokens);
+const userRepo = new UserRepository(models.users);
+const userUseCase = new UserUseCase(userRepo, userTokenRepo, sequelize);
 const userController = new UserController(userUseCase);
 
-const articleRepo = new ArticleRepository();
-const articleUseCase = new ArticleUseCase(articleRepo);
+const articleRepo = new ArticleRepository(models.articles);
+const articleUseCase = new ArticleUseCase(articleRepo, sequelize);
 const articleController = new ArticleController(articleUseCase);
 
-const diagnosisRepo = new DiagnosisRepository();
-const diagnosisUseCase = new DiagnosisUseCase(diagnosisRepo);
+const diagnosisRepo = new DiagnosisRepository(models.diagnosis_history, models.user_symptoms);
+const diagnosisUseCase = new DiagnosisUseCase(diagnosisRepo, sequelize);
 const diagnosisController = new DiagnosisController(diagnosisUseCase);
 
-const hospitalRepo = new HospitalRepository();
-const hospitalUseCase = new HospitalUseCase(hospitalRepo);
+const hospitalRepo = new HospitalRepository(models.hospitals, sequelize); // Pass sequelize to HospitalRepository
+const hospitalUseCase = new HospitalUseCase(hospitalRepo, sequelize);
 const hospitalController = new HospitalController(hospitalUseCase);
 
 const PORT = process.env.PORT;
@@ -174,6 +177,27 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 io.on("connection", (socket) => {
     console.log("Connected to Socket.io:", socket.id);
     chatHandler(io, socket, chatUseCase);
+});
+
+// --- Global Error Handler ---
+const { AppError, InternalServerError } = require('./src/domain/errors/AppError');
+app.use((err, req, res, next) => {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      code: err.code,
+      message: err.message,
+      details: err.details
+    });
+  }
+
+  console.error('💥 UNHANDLED ERROR:', err);
+  return res.status(500).json({
+    success: false,
+    code: 'ERR_INTERNAL',
+    message: 'Terjadi kesalahan internal server',
+    details: err.message // For debugging, consider removing in production
+  });
 });
 
 // --- DATABASE SYNC & SERVER STARTUP ---

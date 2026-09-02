@@ -1,21 +1,22 @@
-const initModels = require("../models/init-models");
-const sequelize = require("../database/sequelize");
 const { Op } = require("sequelize");
-const models = initModels(sequelize);
 
 class UsersRepository {
-    async create(data) {
-        return await models.users.create(data);
+    constructor(userModel) {
+        this.userModel = userModel;
+    }
+
+    async create(data, transaction = null) {
+        return await this.userModel.create(data, { transaction });
     }
 
     async findAll() {
-        return await models.users.findAll({
+        return await this.userModel.findAll({
             attributes: { exclude: ['password'] }
         });
     }
 
     async findAllExcept(id) {
-        return await models.users.findAll({
+        return await this.userModel.findAll({
             where: {
                 id: { [Op.ne]: id }
             },
@@ -23,28 +24,30 @@ class UsersRepository {
         });
     }
 
-    async findById(id) {
-        return await models.users.findByPk(id);
+    async findById(id, transaction = null) {
+        return await this.userModel.findByPk(id, { transaction });
     }
 
-    async findByUsername(username) {
-        return await models.users.findOne({ 
-            where: { username: username } 
+    async findByUsername(username, transaction = null) {
+        return await this.userModel.findOne({
+            where: { username: username },
+            transaction
         });
     }
 
-    async findByEmail(email) {
-        return await models.users.findOne({ 
-            where: { email: email } 
+    async findByEmail(email, transaction = null) {
+        return await this.userModel.findOne({
+            where: { email: email },
+            transaction
         });
     }
 
-    async update(id, data) {
-        return await models.users.update(data, { where: { id: id } });
+    async update(id, data, transaction = null) {
+        return await this.userModel.update(data, { where: { id: id }, transaction });
     }
 
-    async delete(id) {
-        return await models.users.destroy({ where: { id: id } });
+    async delete(id, transaction = null) {
+        return await this.userModel.destroy({ where: { id: id }, transaction });
     }
 }
 

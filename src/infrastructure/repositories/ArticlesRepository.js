@@ -1,31 +1,31 @@
-const initModels = require("../models/init-models");
-const sequelize = require("../database/sequelize");
-const models = initModels(sequelize);
-
 class ArticlesRepository {
-    async create(data) {
-        return await models.articles.create(data);
+    constructor(articleModel) {
+        this.articleModel = articleModel;
+    }
+
+    async create(data, transaction = null) {
+        return await this.articleModel.create(data, { transaction });
     }
 
     async findAll(page = 1, limit = 10) {
-    const offset = (page - 1) * limit;
-    return await models.articles.findAndCountAll({
-        limit: limit,
-        offset: offset,
-        order: [['createdAt', 'DESC']]
-    });
-}
-
-    async findById(id) {
-        return await models.articles.findByPk(id);
+        const offset = (page - 1) * limit;
+        return await this.articleModel.findAndCountAll({
+            limit: limit,
+            offset: offset,
+            order: [['createdAt', 'DESC']]
+        });
     }
 
-    async update(id, data) {
-        return await models.articles.update(data, { where: { id } });
+    async findById(id, transaction = null) {
+        return await this.articleModel.findByPk(id, { transaction });
     }
 
-    async delete(id) {
-        return await models.articles.destroy({ where: { id } });
+    async update(id, data, transaction = null) {
+        return await this.articleModel.update(data, { where: { id }, transaction });
+    }
+
+    async delete(id, transaction = null) {
+        return await this.articleModel.destroy({ where: { id }, transaction });
     }
 }
 

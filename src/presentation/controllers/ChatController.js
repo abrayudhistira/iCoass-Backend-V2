@@ -2,17 +2,17 @@ class ChatController {
     constructor(chatUseCase) {
         this.chatUseCase = chatUseCase;
     }
-    getRooms = async (req, res) => {
+    getRooms = async (req, res, next) => {
         try {
             const { id, role } = req.user;
             const rooms = await this.chatUseCase.getChatList(id, role);
             res.json({ success: true, data: rooms });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    getMessages = async (req, res) => {
+    getMessages = async (req, res, next) => {
         try {
             const { roomId } = req.params;
             const page = parseInt(req.query.page) || 1;
@@ -21,33 +21,30 @@ class ChatController {
             const messages = await this.chatUseCase.getHistory(roomId, page, limit);
             res.json({ success: true, data: messages });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    getQueues = async (req, res) => {
+    getQueues = async (req, res, next) => {
         try {
             const queues = await this.chatUseCase.getAvailableQueues();
             res.json({ success: true, data: queues });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    closeChat = async (req, res) => {
+    closeChat = async (req, res, next) => {
         try {
             const { roomId } = req.params;
             const room = await this.chatUseCase.closeChat(roomId);
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 message: "Sesi chat berhasil ditutup",
-                data: room 
+                data: room
             });
         } catch (err) {
-            res.status(400).json({ 
-                success: false, 
-                message: err.message 
-            });
+            next(err);
         }
     };
 }

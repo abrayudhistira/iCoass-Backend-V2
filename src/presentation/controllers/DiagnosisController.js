@@ -1,36 +1,32 @@
-const DiagnosisRepository = require("../../infrastructure/repositories/DiagnosisRepository");
-const DiagnosisUseCase = require("../../application/usecase/DiagnosisUseCase");
+const { ValidationError } = require('../../domain/errors/AppError');
 
 class DiagnosisController {
-    constructor(DiagnosisUseCase){
+    constructor(DiagnosisUseCase) {
         this.useCase = DiagnosisUseCase;
     }
 
-    diagnose = async (req, res) => {
+    diagnose = async (req, res, next) => {
         try {
             const userId = req.user.id;
-            const { symptoms } = req.body; // Menggunakan key 'symptoms' sesuai request baru kamu
+            const { symptoms } = req.body;
 
             if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Daftar kode gejala (symptoms) wajib dikirim dalam bentuk array" 
-                });
+                throw new ValidationError("Daftar kode gejala (symptoms) wajib dikirim dalam bentuk array");
             }
 
             const result = await this.useCase.executeDiagnosis(userId, symptoms);
-            
-            res.status(201).json({ 
-                success: true, 
+
+            res.status(201).json({
+                success: true,
                 message: "Diagnosa berhasil dilakukan",
-                data: result 
+                data: result
             });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    getHistory = async (req, res) => {
+    getHistory = async (req, res, next) => {
         try {
             const userId = req.user.id;
             const page = parseInt(req.query.page) || 1;
@@ -47,7 +43,7 @@ class DiagnosisController {
                 }
             });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
+            next(err);
         }
     };
 }

@@ -1,68 +1,57 @@
-const UsersRepository = require("../../infrastructure/repositories/UsersRepository");
-const UserUseCase = require("../../application/usecase/UserUseCase");
+const { ValidationError } = require('../../domain/errors/AppError');
 
 class UserController {
     constructor(userUseCase) {
         this.useCase = userUseCase;
     }
 
-    register = async (req, res) => {
+    register = async (req, res, next) => {
         try {
             const user = await this.useCase.register(req.body);
             res.status(201).json({ success: true, data: user });
         } catch (error) {
-            res.status(400).json({ success: false, message: error.message });
+            next(error);
         }
     };
 
-    // login = async (req, res) => {
-    //     try {
-    //         const { email, password } = req.body;
-    //         const result = await this.useCase.login(email, password);
-    //         res.status(200).json({ success: true, ...result });
-    //     } catch (error) {
-    //         res.status(401).json({ success: false, message: error.message });
-    //     }
-    // };
-    login = async (req, res) => {
+    login = async (req, res, next) => {
         try {
-            const { username, password } = req.body; // Ambil username
+            const { username, password } = req.body;
             const result = await this.useCase.login(username, password);
             res.status(200).json({ success: true, ...result });
         } catch (error) {
-            res.status(401).json({ success: false, message: error.message });
+            next(error);
         }
     };
 
-    update = async (req, res) => {
+    update = async (req, res, next) => {
         try {
-            // req.user.id berasal dari middleware JWT
             const result = await this.useCase.updateProfile(req.params.id, req.user.id, req.user.role, req.body);
-            res.status(200).json({ success: true, message: "Profil berhasil diperbarui" });
+            res.status(200).json({ success: true, message: "Profil berhasil diperbarui", data: result });
         } catch (error) {
-            res.status(403).json({ success: false, message: error.message });
+            next(error);
         }
     };
 
-    getAll = async (req, res) => {
+    getAll = async (req, res, next) => {
         try {
             const users = await this.useCase.getAllUsers(req.user.id);
             res.status(200).json({ success: true, data: users });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            next(error);
         }
     };
 
-    getProfile = async (req, res) => {
+    getProfile = async (req, res, next) => {
         try {
             const user = await this.useCase.getUserById(req.params.id);
             res.status(200).json({ success: true, data: user });
         } catch (error) {
-            res.status(404).json({ success: false, message: error.message });
+            next(error);
         }
     }
 
-    delete = async (req, res) => {
+    delete = async (req, res, next) => {
         try {
             await this.useCase.deleteUser(req.params.id, req.user.id);
 
@@ -71,31 +60,31 @@ class UserController {
                 message: `User dengan ID ${req.params.id} berhasil dihapus`
             });
         } catch (error) {
-            res.status(400).json({ success: false, message: error.message });
+            next(error);
         }
     };
 
-    refreshToken = async (req, res) => {
+    refreshToken = async (req, res, next) => {
         try {
             const { refreshToken } = req.body;
             if (!refreshToken) {
-                return res.status(400).json({ success: false, message: "Token diperlukan" });
+                throw new ValidationError("Token diperlukan");
             }
 
             const result = await this.useCase.refreshAccessToken(refreshToken);
             res.status(200).json({ success: true, ...result });
         } catch (error) {
-            res.status(401).json({ success: false, message: error.message });
+            next(error);
         }
     };
 
-    logout = async (req, res) => {
+    logout = async (req, res, next) => {
         try {
             const { refreshToken } = req.body;
             await this.useCase.logout(refreshToken);
             res.status(200).json({ success: true, message: "Logout berhasil" });
         } catch (error) {
-            res.status(400).json({ success: false, message: error.message });
+            next(error);
         }
     };
 }

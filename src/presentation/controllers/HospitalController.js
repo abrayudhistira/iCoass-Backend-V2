@@ -1,19 +1,18 @@
-const HospitalsRepository = require("../../infrastructure/repositories/HospitalRepository");
-const HospitalUseCase = require("../../application/usecase/HospitalUsecase");
+const { ValidationError } = require('../../domain/errors/AppError');
 
 class HospitalController {
-    constructor(HospitalUseCase){
+    constructor(HospitalUseCase) {
         this.useCase = HospitalUseCase;
     }
 
-    getAll = async (req, res) => {
+    getAll = async (req, res, next) => {
         try {
             const { latitude, longitude, radius, page, limit } = req.query;
             console.log('[HospitalController] Query:', req.query);
-            
+
             const result = await this.useCase.getHospitals({
-                latitude, longitude, radius, 
-                page: page || 1, 
+                latitude, longitude, radius,
+                page: page || 1,
                 limit: limit || 10
             });
 
@@ -27,20 +26,20 @@ class HospitalController {
                 }
             });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    getOne = async (req, res) => {
+    getOne = async (req, res, next) => {
         try {
             const hospital = await this.useCase.getHospitalById(req.params.id);
             res.json({ success: true, data: hospital });
         } catch (err) {
-            res.status(404).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    create = async (req, res) => {
+    create = async (req, res, next) => {
         try {
             const hospitalData = req.body;
             if (req.file) {
@@ -50,25 +49,25 @@ class HospitalController {
             const newHospital = await this.useCase.createHospital(hospitalData);
             res.status(201).json({ success: true, data: newHospital });
         } catch (err) {
-            res.status(400).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    update = async (req, res) => {
+    update = async (req, res, next) => {
         try {
             await this.useCase.updateHospital(req.params.id, req.body);
             res.json({ success: true, message: "Data RS berhasil diperbarui" });
         } catch (err) {
-            res.status(400).json({ success: false, message: err.message });
+            next(err);
         }
     };
 
-    delete = async (req, res) => {
+    delete = async (req, res, next) => {
         try {
             await this.useCase.deleteHospital(req.params.id);
             res.json({ success: true, message: "Data RS berhasil dihapus" });
         } catch (err) {
-            res.status(400).json({ success: false, message: err.message });
+            next(err);
         }
     };
 }
