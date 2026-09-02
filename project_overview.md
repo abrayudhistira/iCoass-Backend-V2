@@ -499,4 +499,4 @@ tests/
 ---
 
 *Document generated: 2026-08-10*
-*Project: iCoass Backend v1.0.0*
+*Project: iCoass Backend v2.0.0*
